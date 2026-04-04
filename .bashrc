@@ -12,8 +12,10 @@ export PATH=$PATH:$ANDROID_HOME/tools
 
 alias ls='ls --color=auto'
 alias grep='grep --color=auto'
+
 PS1=' \[\e[32m\]>\[\e[0m\] '
 # PS1='[\u@\h \W]\$ '
+# PS1=' > '
 export PATH="$PATH":"$HOME/.pub-cache/bin"
 
 # Wildcard + individual mv confirmation
@@ -41,3 +43,5 @@ rm() {
     fi
     trash-put "$@"
 }
+
+export PATH="$HOME/.local/bin:$PATH"
