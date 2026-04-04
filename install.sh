@@ -7,7 +7,7 @@
 # Usage: ./install.sh
 # =============================================================================
 
-set -e  # Exit on error
+set -e # Exit on error
 
 # Colors for output
 RED='\033[0;31m'
@@ -21,11 +21,15 @@ NC='\033[0m' # No Color
 # Helper Functions
 # =============================================================================
 
-log()     { echo -e "${GREEN}[✓]${NC} $1"; }
-info()    { echo -e "${BLUE}[→]${NC} $1"; }
-warn()    { echo -e "${YELLOW}[!]${NC} $1"; }
-error()   { echo -e "${RED}[✗]${NC} $1"; }
-section() { echo -e "\n${CYAN}══════════════════════════════════════${NC}"; echo -e "${CYAN}  $1${NC}"; echo -e "${CYAN}══════════════════════════════════════${NC}"; }
+log() { echo -e "${GREEN}[✓]${NC} $1"; }
+info() { echo -e "${BLUE}[→]${NC} $1"; }
+warn() { echo -e "${YELLOW}[!]${NC} $1"; }
+error() { echo -e "${RED}[✗]${NC} $1"; }
+section() {
+    echo -e "\n${CYAN}══════════════════════════════════════${NC}"
+    echo -e "${CYAN}  $1${NC}"
+    echo -e "${CYAN}══════════════════════════════════════${NC}"
+}
 
 # Check if a command exists
 has() { command -v "$1" &>/dev/null; }
@@ -238,7 +242,7 @@ pacman_install i3-wm i3status i3lock i3blocks dmenu dex xss-lock xautolock
 # Set up .xinitrc only if it doesn't already exec i3
 if [ ! -f "$HOME/.xinitrc" ] || ! grep -q "exec i3" "$HOME/.xinitrc"; then
     info "Creating ~/.xinitrc"
-    echo "exec i3" > "$HOME/.xinitrc"
+    echo "exec i3" >"$HOME/.xinitrc"
     log ".xinitrc created"
 else
     warn "~/.xinitrc already has exec i3 — skipping"
@@ -247,7 +251,7 @@ fi
 # Set up auto-start X on login in .bash_profile
 if [ ! -f "$HOME/.bash_profile" ] || ! grep -q "startx" "$HOME/.bash_profile"; then
     info "Adding startx to ~/.bash_profile"
-    cat >> "$HOME/.bash_profile" << 'EOF'
+    cat >>"$HOME/.bash_profile" <<'EOF'
 
 # Auto-start X on login
 if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" = "1" ]; then
@@ -278,7 +282,7 @@ PIPEWIRE_CONF_DIR="/etc/pipewire/pipewire-pulse.conf.d"
 if [ ! -f "$PIPEWIRE_CONF_DIR/switch-on-connect.conf" ]; then
     info "Setting up bluetooth auto-switch..."
     sudo mkdir -p "$PIPEWIRE_CONF_DIR"
-    sudo tee "$PIPEWIRE_CONF_DIR/switch-on-connect.conf" > /dev/null << 'EOF'
+    sudo tee "$PIPEWIRE_CONF_DIR/switch-on-connect.conf" >/dev/null <<'EOF'
 pulse.cmd = [
     { cmd = "load-module" args = "module-switch-on-connect" flags = [] }
 ]
@@ -326,7 +330,7 @@ BRIGHTNESS_SCRIPT="$HOME/.local/bin/brightness-notify"
 if [ ! -f "$BRIGHTNESS_SCRIPT" ]; then
     info "Creating brightness-notify script..."
     mkdir -p "$HOME/.local/bin"
-    cat > "$BRIGHTNESS_SCRIPT" << 'EOF'
+    cat >"$BRIGHTNESS_SCRIPT" <<'EOF'
 #!/bin/bash
 MAX=$(brightnessctl max)
 CUR=$(brightnessctl get)
@@ -342,7 +346,7 @@ fi
 # Add ~/.local/bin to PATH if not already there
 if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
     info "Adding ~/.local/bin to PATH in ~/.bashrc"
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >>"$HOME/.bashrc"
 fi
 
 log "Volume & brightness done"
@@ -361,15 +365,15 @@ mkdir -p "$SOUND_DIR"
 
 if [ ! -f "$SOUND_DIR/dunst-notify-sound-low" ]; then
     info "Creating dunst sound scripts..."
-    cat > "$SOUND_DIR/dunst-notify-sound-low" << 'EOF'
+    cat >"$SOUND_DIR/dunst-notify-sound-low" <<'EOF'
 #!/bin/bash
 play -qn synth 0.08 sine 600 vol 0.2 2>/dev/null &
 EOF
-    cat > "$SOUND_DIR/dunst-notify-sound-normal" << 'EOF'
+    cat >"$SOUND_DIR/dunst-notify-sound-normal" <<'EOF'
 #!/bin/bash
 play -qn synth 0.1 sine 880 vol 0.3 2>/dev/null &
 EOF
-    cat > "$SOUND_DIR/dunst-notify-sound-critical" << 'EOF'
+    cat >"$SOUND_DIR/dunst-notify-sound-critical" <<'EOF'
 #!/bin/bash
 play -qn synth 0.1 sine 880 : synth 0.1 sine 1100 vol 0.5 2>/dev/null &
 EOF
@@ -459,7 +463,7 @@ YAZI_CONFIG="$HOME/.config/yazi/yazi.toml"
 if [ ! -f "$YAZI_CONFIG" ]; then
     info "Creating yazi image preview config..."
     mkdir -p "$HOME/.config/yazi"
-    cat > "$YAZI_CONFIG" << 'EOF'
+    cat >"$YAZI_CONFIG" <<'EOF'
 [preview]
 image_protocol = "ueberzug"
 EOF
@@ -471,13 +475,27 @@ fi
 log "File manager & image editing done"
 
 # =============================================================================
-# 16. AUR Packages
+# 16a. AUR Packages
 # =============================================================================
 
 section "16. AUR Packages"
 
 aur_install zen-browser discord
 log "AUR packages done"
+
+# =============================================================================
+# 16b. Trash CLI
+# =============================================================================
+
+section "16b. Trash CLI"
+
+if ask_install "Trash CLI (auto-empty trash older than 7 days)" trash-cli; then
+    pacman_install trash-cli
+    # Enable timer after symlinks are set up — handled in post-symlink step
+    ENABLE_TRASH_TIMER=true
+else
+    skipped "Trash CLI skipped"
+fi
 
 # =============================================================================
 # 17. Dotfiles Symlinks
@@ -510,6 +528,20 @@ fi
 # Tmux
 [ -f "$DOTFILES_DIR/.tmux.conf" ] && symlink "$DOTFILES_DIR/.tmux.conf" "$HOME/.tmux.conf" || warn ".tmux.conf not found in dotfiles"
 [ -d "$DOTFILES_DIR/.tmux" ] && symlink "$DOTFILES_DIR/.tmux" "$HOME/.tmux" || warn ".tmux dir not found in dotfiles"
+
+# Starship
+symlink "$DOTFILES_DIR/starship.toml" "$HOME/.config/starship.toml"
+
+# Systemd user services
+mkdir -p "$HOME/.config/systemd/user"
+symlink "$DOTFILES_DIR/systemd/trash-empty.service" "$HOME/.config/systemd/user/trash-empty.service"
+symlink "$DOTFILES_DIR/systemd/trash-empty.timer" "$HOME/.config/systemd/user/trash-empty.timer"
+
+# Enable trash timer
+if [ "${ENABLE_TRASH_TIMER:-false}" = "true" ]; then
+    systemctl --user daemon-reload
+    enable_user_service trash-empty.timer
+fi
 
 log "Symlinks done"
 
