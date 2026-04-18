@@ -1,2 +1,10 @@
 [preview]
 image_protocol = "ueberzug"
+
+[plugin]
+prepend_previewers = [
+    { name = "*.docx", run = "office" },
+    { name = "*.xlsx", run = "office" },
+    { name = "*.pptx", run = "office" },
+    { name = "*.odt", run = "office" },
+]
