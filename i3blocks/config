@@ -28,6 +28,11 @@ command=echo "󰻠 $(grep 'cpu ' /proc/stat | awk '{usage=($2+$4)*100/($2+$4+$5)
 interval=2
 color=#cdd6f4
 
+[battery]
+command=cap=$(cat /sys/class/power_supply/BAT1/capacity); status=$(cat /sys/class/power_supply/BAT1/status); if [ "$status" = "Charging" ]; then echo "󰂄 ${cap}%"; elif [ "$cap" -le 20 ]; then echo "󰁺 ${cap}%"; else echo "󰁹 ${cap}%"; fi
+interval=30
+color=#cdd6f4
+
 [time]
 command=date "+󰃰 %d %b %H:%M"
 color=#cdd6f4
